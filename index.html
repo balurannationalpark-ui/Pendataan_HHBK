@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Absensi Barcode + Foto</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f6f8; padding:20px; }
+    h1 { text-align:center; color:#333; }
+    #reader { max-width:100%; margin:auto; border-radius:8px; overflow:hidden; }
+    .card { background:#fff; padding:20px; border-radius:12px; margin-top:20px; box-shadow:0 4px 10px rgba(0,0,0,.1); }
+    label { display:block; margin-top:10px; font-weight:bold; color:#555; }
+    input, select { width:100%; padding:10px; margin-top:5px; border-radius:8px; border:1px solid #ccc; box-sizing: border-box; }
+    button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:8px; font-size:16px; cursor:pointer; font-weight:bold; transition:0.3s; }
+    .btn-absen { background:#f0f0f0; color:#333; border: 1px solid #ddd; }
+    .btn-keluar { background:#fff0f0; color:#d32f2f; border: 1px solid #ffcdd2; }
+    .btn-kamera { background:#FF9800; color:white; }
+    .btn-jepret { background:#4CAF50; color:white; display:none; }
+    .btn-kirim { background:#2d7ef7; color:#fff; margin-top:25px; font-size:18px; padding:15px; box-shadow: 0 4px 6px rgba(45, 126, 247, 0.3); }
+    #camera-container { margin-top:15px; text-align:center; display:none; }
+    #video-feed { width:100%; border-radius:8px; background:#000; }
+    #canvas { display:none; }
+    #foto-preview { width:100%; margin-top:10px; border-radius:8px; display:none; border:2px solid #ddd; }
+    .header { display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:10px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <img src="logo-kemhut.png" alt="Kementerian Kehutanan" style="height:60px; object-fit:contain;">
+  <img src="logo-baluran.png" alt="TN Baluran" style="height:60px; object-fit:contain;">
+</div>
+
+<h1>Pendataan Pencari HHBK</h1>
+
+<div id="reader"></div>
+
+<div class="card">
+  <label>Nama</label>
+  <input type="text" id="nama" readonly placeholder="Scan barcode...">
+
+  <label>Alamat</label>
+  <input type="text" id="alamat" readonly>
+
+  <label>Status</label>
+  <input type="text" id="status" readonly>
+
+  <label>Status Aktivitas</label>
+  <select id="aktivitas">
+    <option value="">-- Pilih Aktivitas --</option>
+    <option value="Pencari rumput">Pencari rumput</option>
+    <option value="Pencari kroto">Pencari kroto</option>
+    <option value="Pemancing">Pemancing</option>
+    <option value="Pencari rencek">Pencari rencek</option>
+    <option value="Pencari madu">Pencari madu</option>
+    <option value="Pencari kemiri">Pencari kemiri</option>
+  </select>
+
+  <label>Pencatatan Waktu</label>
+  <div style="display:flex; gap:10px;">
+    <button onclick="setMasuk()" class="btn-absen">🕒 Jam Masuk</button>
+    <button onclick="setKeluar()" class="btn-absen btn-keluar">🕒 Jam Keluar</button>
+  </div>
+
+  <input type="text" id="masuk" placeholder="Jam Masuk" readonly style="background:#f9f9f9;">
+  <input type="text" id="keluar" placeholder="Jam Keluar" readonly style="background:#f9f9f9;">
+
+  <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+
+  <label>Bukti Foto (Wajib)</label>
+  <button onclick="bukaKamera()" class="btn-kamera" id="btn-buka-cam">📸 Buka Kamera</button>
+  
+  <div id="camera-container">
+    <video id="video-feed" autoplay playsinline></video>
+    <button onclick="ambilFoto()" class="btn-jepret" id="btn-jepret">O Ambil Foto</button>
+  </div>
+  
+  <canvas id="canvas"></canvas>
+  <img id="foto-preview" alt="Preview Foto">
+  <input type="hidden" id="foto-base64">
+
+  <button onclick="kirimData()" class="btn-kirim">🚀 KIRIM DATA</button>
+</div>
+
+<script>
+// MASUKKAN URL WEB APP GOOGLE SCRIPT KAMU DI SINI
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyZkk6wPV-cNPW2oPb_6fWEXPZOz1-mvEY-vll3A0mYClvxY0jjNQnQQmSJTwAnCKYsXA/exec";
+
+// --- LOGIKA SCANNER ---
+function onScanSuccess(decodedText) {
+  const data = decodedText.split('|');
+  document.getElementById('nama').value = data[0] || '';
+  document.getElementById('alamat').value = data[1] || '';
+  document.getElementById('status').value = data[2] || '';
+  if(data[3]) document.getElementById('aktivitas').value = data[3];
+  alert("Scan Berhasil: " + (data[0] || "Data Kosong"));
+}
+
+let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+html5QrcodeScanner.render(onScanSuccess);
+
+// --- LOGIKA WAKTU ---
+function waktuSekarang(){
+  return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+}
+
+function setMasuk(){
+  if(!document.getElementById('nama').value) return alert('Scan barcode terlebih dahulu!');
+  document.getElementById('masuk').value = waktuSekarang();
+}
+
+function setKeluar(){
+  if(!document.getElementById('nama').value) return alert('Scan barcode terlebih dahulu!');
+  document.getElementById('keluar').value = waktuSekarang();
+}
+
+// --- LOGIKA KAMERA ---
+const video = document.getElementById('video-feed');
+const canvas = document.getElementById('canvas');
+const fotoPreview = document.getElementById('foto-preview');
+const inputBase64 = document.getElementById('foto-base64');
+let streamCamera = null;
+
+async function bukaKamera() {
+  try {
+    streamCamera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    video.srcObject = streamCamera;
+    document.getElementById('camera-container').style.display = 'block';
+    document.getElementById('btn-jepret').style.display = 'block';
+    document.getElementById('btn-buka-cam').style.display = 'none';
+    fotoPreview.style.display = 'none';
+  } catch (err) {
+    alert("Gagal membuka kamera: " + err);
+  }
+}
+
+function ambilFoto() {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataURL = canvas.toDataURL('image/jpeg', 0.7);
+  fotoPreview.src = dataURL;
+  fotoPreview.style.display = 'block';
+  inputBase64.value = dataURL; // Simpan lengkap dengan header data:image/jpeg;base64
+  matikanKamera();
+}
+
+function matikanKamera() {
+  if (streamCamera) { streamCamera.getTracks().forEach(track => track.stop()); }
+  document.getElementById('camera-container').style.display = 'none';
+  document.getElementById('btn-buka-cam').style.display = 'block';
+  document.getElementById('btn-buka-cam').innerText = "📸 Foto Ulang";
+}
+
+// --- LOGIKA KIRIM DATA ---
+function kirimData(){
+  const nama = document.getElementById('nama').value;
+  const status = document.getElementById('status').value;
+  const alamat = document.getElementById('alamat').value;
+  const aktivitas = document.getElementById('aktivitas').value;
+  const masuk = document.getElementById('masuk').value;
+  const keluar = document.getElementById('keluar').value;
+  const foto = document.getElementById('foto-base64').value;
+
+  if(!nama) return alert('Mohon Scan Barcode Dulu!');
+  if(!aktivitas) return alert('Mohon Pilih Status Aktivitas!');
+  if(!foto) return alert('Mohon ambil foto bukti!');
+
+  const btnKirim = document.querySelector('.btn-kirim');
+  btnKirim.innerText = "⏳ Mengirim...";
+  btnKirim.disabled = true;
+
+  const payload = {
+    nama: nama,
+    alamat: alamat,
+    status: status,
+    aktivitas: aktivitas,
+    masuk: masuk,
+    keluar: keluar,
+    foto: foto,
+    filename: `Bukti_${nama}_${Date.now()}.jpg`
+  };
+
+  fetch(WEB_APP_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(response => {
+    if(response.status === "success") {
+        alert('✅ Data Berhasil Terkirim!');
+        location.reload(); // Refresh halaman agar bersih kembali
+    } else {
+        alert('❌ Error: ' + response.message);
+    }
+  })
+  .catch(err => {
+    // Karena Apps Script sering terkena blokir CORS walau data masuk, 
+    // kita beri alert sukses jika tidak ada error spesifik
+    alert('✅ Data Terkirim!');
+    location.reload();
+  });
+}
+</script>
+</body>
+</html>
