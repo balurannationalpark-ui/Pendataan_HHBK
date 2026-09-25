@@ -67,6 +67,7 @@
   <input type="text" id="masuk" placeholder="Jam Masuk" readonly style="background:#f9f9f9;">
   <input type="text" id="keluar" placeholder="Jam Keluar" readonly style="background:#f9f9f9;">
 
+  <label>*Jika mengisi jam masuk, keterangan tidak perlu diisi</label></label>
   <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
 
   <label>Bukti Foto (Wajib)</label>
@@ -81,10 +82,11 @@
   <input type="hidden" id="foto-base64">
 
   <label>Keterangan (Opsional)</label>
-  <label>Contoh: 5 kg</label>
+  <label>Contoh: 5 kg/liter/ikat</label>
   <textarea id="keterangan" rows="3" placeholder="Isi keterangan tambahan ya gaess..." 
   style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></textarea>
   <canvas id="canvas"></canvas>
+  <label>*Jika lebih dari 1 item, mohon input data terpisah</label></label>
 
   <button onclick="kirimData()" class="btn-kirim">🚀 KIRIM DATA</button>
 </div>
